@@ -1,9 +1,11 @@
 # main.py (VERSIÓN FINAL CON WEBSOCKETS)
-from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect # <-- Añadir WebSocketDisconnect
+from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
+from fastapi.staticfiles import StaticFiles
 from typing import List
 from .websocket_manager import manager
 import json
+from sqlalchemy import text
 
 from . import models, schemas, crud 
 from .database import SessionLocal, engine 
@@ -16,7 +18,7 @@ from .auth import oauth2_scheme
 from fastapi.security import OAuth2PasswordRequestForm 
 
 # Esta línea es la magia que crea las tablas al inicio (ya la tenemos)
-models.Base.metadata.create_all(bind=engine)
+# models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="API de App de Restaurante",
@@ -33,7 +35,11 @@ def get_db():
         yield db
     finally:
         db.close()
-
+# ----------------------------------------------------------------
+# CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS
+# ----------------------------------------------------------------
+# Monta la carpeta 'static' para que los archivos sean accesibles en /static
+app.mount("/static", StaticFiles(directory="static"), name="static")
 # ----------------------------------------------------------------
 # FUNCIÓN DE SEGURIDAD (Obtiene el usuario logueado)
 # ----------------------------------------------------------------
@@ -244,3 +250,29 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"Error en el WebSocket: {e}")
         manager.disconnect(websocket)
+# ----------------------------------------------------------------
+# ENDPOINT DE SALUD Y MONITOREO
+# ----------------------------------------------------------------
+
+@app.get("/health")
+def check_health(db: Session = Depends(get_db)):
+    """
+    Verifica la salud de la API y la conexión a la base de datos.
+    """
+    try:
+        # Intenta ejecutar una consulta simple para verificar la conexión a DB
+        db.execute(text("SELECT 1"))
+        db.commit()
+        
+        return {
+            "status": "ok",
+            "database_connection": "successful",
+            "api_version": app.version
+        }
+    except Exception as e:
+        # Si la consulta falla, algo está mal con la base de datos
+        raise HTTPException(status_code=503, detail={
+            "status": "error",
+            "database_connection": "failed",
+            "detail": str(e)
+        })
