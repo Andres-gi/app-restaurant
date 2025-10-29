@@ -1,0 +1,17 @@
+# Entorno virtual de Python
+venv/
+
+# Archivo de secretos y variables de entorno
+.env
+
+# Archivos de base de datos SQLite (si llegas a usar uno para pruebas)
+*.db
+restaurante.db
+
+# Archivos compilados de Python
+__pycache__/
+*.pyc
+
+# (Opcional: carpetas de tu editor de código)
+.vscode/
+.idea/

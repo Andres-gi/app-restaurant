@@ -1,9 +1,8 @@
-# models.py (COMPLETO)
 from sqlalchemy import Column, Integer, String, Float, Boolean, Enum, ForeignKey, DateTime
-from sqlalchemy.orm import relationship 
+from sqlalchemy.orm import relationship
 from .database import Base
 import enum
-from datetime import datetime 
+from datetime import datetime
 
 # =======================================================
 # ENUMS
@@ -31,7 +30,7 @@ class EstadoPedido(enum.Enum):
     listo_para_servir = "listo_para_servir"
     servido = "servido"
     cerrado = "cerrado"
-    
+
 class EstadoItem(enum.Enum):
     pendiente = "pendiente"
     en_preparacion = "en_preparacion"
@@ -55,7 +54,8 @@ class Usuario(Base):
     __tablename__ = "usuarios"
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, index=True, unique=True)
-    pin = Column(String)
+    pin = Column(String, unique=True) # PIN único para identificación (usado en login/búsqueda)
+    password_hash = Column(String) # <<< CRÍTICO: Aquí se guarda el hash del PIN
     rol = Column(Enum(RolUsuario))
     pedidos = relationship("Pedido", back_populates="mesero")
 
@@ -78,7 +78,7 @@ class Pedido(Base):
     estado = Column(Enum(EstadoPedido), default=EstadoPedido.nuevo)
     total = Column(Float, default=0.0)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
-    
+
     mesa = relationship("Mesa", back_populates="pedido_actual")
     mesero = relationship("Usuario", back_populates="pedidos")
     items = relationship("ItemPedido", back_populates="pedido")
@@ -93,6 +93,6 @@ class ItemPedido(Base):
     cantidad = Column(Integer)
     estado = Column(Enum(EstadoItem), default=EstadoItem.pendiente)
     destino = Column(String)
-    
+
     pedido = relationship("Pedido", back_populates="items")
     producto = relationship("Producto")

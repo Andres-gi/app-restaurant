@@ -1,40 +1,34 @@
-# websocket_manager.py
-from typing import List
+from typing import List, Dict
 from fastapi import WebSocket, WebSocketDisconnect
 import json
 
 class ConnectionManager:
     """
-    Clase para gestionar las conexiones WebSocket activas.
-    Las meseras se conectarán aquí para recibir notificaciones.
+    Clase para gestionar las conexiones de WebSockets.
+    Solo almacena conexiones activas y permite enviar mensajes.
     """
     def __init__(self):
-        # Almacenará las conexiones activas
+        # Lista de conexiones WebSocket activas
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
-        """Añade una nueva conexión a la lista."""
+        """Añade una nueva conexión activa."""
         await websocket.accept()
         self.active_connections.append(websocket)
-        print(f"Nueva conexión WebSocket activa: {websocket.client}")
+        print(f"WS conectado. Total: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
         """Remueve una conexión inactiva."""
         self.active_connections.remove(websocket)
-        print(f"Conexión WebSocket cerrada: {websocket.client}")
+        print(f"WS desconectado. Total: {len(self.active_connections)}")
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        """Envía un mensaje a un cliente específico."""
+        await websocket.send_text(message)
 
     async def broadcast(self, message: str):
-        """Envía un mensaje a todas las conexiones activas."""
-        # Se usa 'broadcast' porque todas las meseras necesitan saber 
-        # que hay una orden lista, independientemente de la mesa.
+        """Envía un mensaje a todos los clientes conectados."""
         for connection in self.active_connections:
-            try:
-                await connection.send_text(message)
-            except WebSocketDisconnect:
-                # Limpiar conexiones desconectadas si ocurre un error
-                self.disconnect(connection)
-            except Exception as e:
-                print(f"Error al enviar broadcast: {e}")
+            await connection.send_text(message)
 
-# Instancia global del Manager (solo una)
 manager = ConnectionManager()
